@@ -77,7 +77,14 @@ def tree_table(connection):
             return value
     except mysql.connector.Error as err:
         print("Error:")
-
+def help_display():
+    csl.print("sql-lite 1.0 (https://github.com/khuluqilkarim/mysql-cli)")
+    print("Usage: sql-lite [Options] {target specification}")
+    print("TARGET SPECIFICATION:")
+    print("  -u <input username> username from database")
+    print("  -d <input databse_name> database name's")
+    print("  -host <input host/URL> host/URL from database")
+    csl.print("\nEXAMPLES:\n  [purple]sql-lite -u root -d example -host localhost[/]")
 def banner(host, database, username, connection):
     csl.print(f"Host: [bold][blue]{host}[/][/]")
     csl.print(f"Database: [bold][blue]{database}[/][/]")
@@ -92,17 +99,21 @@ def clear_screen():
 def main():
     clear_screen()
 
-    parser = argparse.ArgumentParser(description='Connection to database')
-    parser.add_argument('-u', '--username', type=str, help='Nilai username')
-    parser.add_argument('-d', '--database', type=str, help='Nilai database')
-    parser.add_argument('-host', '--host', type=str, help='Nilai host')
+    parser = argparse.ArgumentParser(description='Connection to database', add_help=False)
+    parser.add_argument('-u', '--username', type=str, help='Value for username')
+    parser.add_argument('-d', '--database', type=str, help='Value for database')
+    parser.add_argument('-host', '--host', type=str, help='Value for host')
+    parser.add_argument('-h', '--help-info', action='store_true', help='Display help information')
 
     args = parser.parse_args()
 
-    if args.username is not None and args.database is not None and args.host is not None:
+    if args.help_info:
+        help_display()
+        return
+    elif args.username is not None and args.database is not None and args.host is not None:
         host = args.host
         user = args.username
-        password = input('password :')
+        password = input('password: ')
         database = args.database
 
         connection = connect_to_database(host, user, password, database)
@@ -122,7 +133,6 @@ def main():
 
         command = input("\nExecute Query: ")
 
-
         if command.startswith("stop"):
             connection.close()
             print("Connection closed.")
@@ -134,7 +144,8 @@ def main():
             clear_screen()
             banner(host, database, user, connection)
             command_sql(connection, command)
-            
 
 if __name__ == "__main__":
     main()
+
+
