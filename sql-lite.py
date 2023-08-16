@@ -6,13 +6,33 @@ from rich.console import Console
 from rich.tree import Tree
 from rich import print as rprint
 from random import randint
+import itertools
+import threading
+import time
+import sys
+
 csl = Console()
+class LoadingAnimation:
+    def __init__(self):
+        self.done_event = threading.Event()
+        self.done_event.clear()
+
+    def animate(self):
+        for c in itertools.cycle(['|', '/', '-', '\\']):
+            if self.done_event.is_set():
+                break
+            sys.stdout.write('\rloading  ' + c)
+            sys.stdout.flush()
+            time.sleep(0.1)
+        sys.stdout.write('')
+        clear_screen()
+
 
 host = ""
 user = ""
 password = ""
 database = ""
-def connect_to_database(host, user, password, database):
+def connect_to_database(host, user, password, database,loading_obj):
     try:
         connection = mysql.connector.connect(
             host=host,
@@ -21,6 +41,7 @@ def connect_to_database(host, user, password, database):
             database=database
         )
         csl.print("[bold][green]Connected to the database.[/][/]")
+        loading_obj.done_event.set()
         clear_screen()
         return connection
     except mysql.connector.Error as err:
@@ -93,6 +114,14 @@ def banner(host, database, username, connection):
         csl.print("\n[bold][green]Connection established[/][/]\n")
     tree_table(connection)
 
+def banner_loading(host, database, username):
+    clear_screen()
+    csl.print(f"Host: [bold][blue]{host}[/][/]")
+    csl.print(f"Database: [bold][blue]{database}[/][/]")
+    csl.print(f"User: [bold][blue]{username}[/][/]")
+    
+    csl.print("\n[bold][red]Waiting for Connection established[/][/]\n")
+
 def clear_screen():
     os.system('cls')
 
@@ -115,15 +144,25 @@ def main():
         user = args.username
         password = input('password: ')
         database = args.database
-
-        connection = connect_to_database(host, user, password, database)
+        banner_loading(host, database, user)
+        loading = LoadingAnimation()
+        t = threading.Thread(target=loading.animate)
+        t.start()
+        
+        connection = connect_to_database(host, user, password, database,loading)
+        t.join()
     else:
         host = input("Host: ")
         user = input("Username: ")
         password = input("Password: ")
         database = input("Database: ")
-
-        connection = connect_to_database(host, user, password, database)
+        banner_loading(host, database, user)
+        loading = LoadingAnimation()
+        t = threading.Thread(target=loading.animate)
+        t.start()
+        
+        connection = connect_to_database(host, user, password, database,loading)
+        t.join()
 
     banner(host, database, user, connection)
     while True:
